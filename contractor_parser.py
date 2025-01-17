@@ -11,6 +11,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+from settings import (
+    ELEMENT_FIND_TIMEOUT,
+    PAGE_RETRY_COUNT,
+)
 
 
 @dataclass
@@ -31,9 +35,9 @@ class ContractorsParser:
     def __parse_contractor(self, contractor) -> dict:
         self.logger.info(f'Parsing: {contractor["url"]}')
         self.driver.get(contractor['url'])
-        for _ in range(3):
+        for _ in range(PAGE_RETRY_COUNT):
             try:
-                WebDriverWait(self.driver, 5).until(
+                WebDriverWait(self.driver, ELEMENT_FIND_TIMEOUT).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, '[data-component="Pro Name"'))
                 )
             except selenium.common.exceptions.TimeoutException:
@@ -41,7 +45,7 @@ class ContractorsParser:
 
         # get only number from string
         try:
-            projects_link = WebDriverWait(self.driver, 5).until(
+            projects_link = WebDriverWait(self.driver, ELEMENT_FIND_TIMEOUT).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, '#projects-label'))
             )
         except (selenium.common.exceptions.NoSuchElementException, selenium.common.exceptions.TimeoutException):
@@ -61,7 +65,7 @@ class ContractorsParser:
                 break
             contractor[key] = value
         try:
-            rating_element = WebDriverWait(self.driver, 5).until(
+            rating_element = WebDriverWait(self.driver, ELEMENT_FIND_TIMEOUT).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, '.ReviewAggregation__StyledRating-sc-11mmvxo-1'))
             )
             reviews_element = self.driver.find_element(By.CSS_SELECTOR,

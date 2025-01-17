@@ -13,19 +13,24 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+from settings import (
+    CONTRACTOR_PARSER_MAX_WORKERS,
+    GATHERER_THREAD_MAX_WORKERS,
+    ELEMENT_FIND_TIMEOUT,
+    PAGE_COUNT,
+    ITEM_PER_PAGE,
+    PAGE_RETRY_COUNT,
+)
 from driver_pool import WebDriverPool
 from contractor_parser import run_contractors_parser
 
-MAX_WORKERS: int = 1
-PAGE_COUNT: int = 2
-ITEM_PER_PAGE: int = 15
 
 def gather_links(driver: webdriver.Chrome, url: str) -> list:
     logging.info(f'Gathering links from: {url}')
 
     driver.get(url)
 
-    radius_field = WebDriverWait(driver, 5).until(
+    radius_field = WebDriverWait(driver, ELEMENT_FIND_TIMEOUT).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, '[data-component="Radius"'))
     )
 
@@ -34,7 +39,7 @@ def gather_links(driver: webdriver.Chrome, url: str) -> list:
         logging.info('Radius is not set to anywhere')
         # set filters
         radius_field.click()
-        anywhere_location_button = WebDriverWait(driver, 5).until(
+        anywhere_location_button = WebDriverWait(driver, ELEMENT_FIND_TIMEOUT).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, '#hui-menu-1-item-4'))
         )
         anywhere_location_button.click()
@@ -44,10 +49,10 @@ def gather_links(driver: webdriver.Chrome, url: str) -> list:
             driver.get(url)
 
 
-    contractor_items = WebDriverWait(driver, 5).until(
+    contractor_items = WebDriverWait(driver, ELEMENT_FIND_TIMEOUT).until(
         EC.presence_of_all_elements_located((By.CSS_SELECTOR, '.hz-pro-search-results__item'))
     )
-    page_num = WebDriverWait(driver, 5).until(
+    page_num = WebDriverWait(driver, ELEMENT_FIND_TIMEOUT).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, '.hz-pagination-link--selected'))
     ).text
 
@@ -55,7 +60,7 @@ def gather_links(driver: webdriver.Chrome, url: str) -> list:
 
     return [
         {
-            'name': WebDriverWait(contractor_card, 5).until(
+            'name': WebDriverWait(contractor_card, ELEMENT_FIND_TIMEOUT).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, '[data-component="Pro Name"'))
             ).text,
             'url': contractor_card.find_element(By.CSS_SELECTOR, 'a').get_attribute('href'),
@@ -67,7 +72,7 @@ def gather_links(driver: webdriver.Chrome, url: str) -> list:
 
 
 def run_gather_links(driver_pool: WebDriverPool, url) -> list:
-    for _ in range(3):
+    for _ in range(PAGE_RETRY_COUNT):
         driver: webdriver.Chrome = driver_pool.acquire()
         try:
             return gather_links(driver, url)
@@ -84,7 +89,7 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(processName)s - %(levelname)s - %(message)s')
     multiprocessing.log_to_stderr(logging.INFO)
 
-    with WebDriverPool(1) as pool:
+    with WebDriverPool(GATHERER_THREAD_MAX_WORKERS) as pool:
         with ThreadPoolExecutor(max_workers=pool.max_workers) as executor:
             contractors = []
             futures = []
@@ -103,8 +108,8 @@ def main() -> None:
 
     futures = []
     results = []
-    with ProcessPoolExecutor(MAX_WORKERS) as executor:
-        items_per_core = len(contractors) // MAX_WORKERS
+    with ProcessPoolExecutor(CONTRACTOR_PARSER_MAX_WORKERS) as executor:
+        items_per_core = len(contractors) // CONTRACTOR_PARSER_MAX_WORKERS
 
         chunks = [
             contractors[i:i + items_per_core]
