@@ -67,14 +67,15 @@ def gather_links(driver: webdriver.Chrome, url: str) -> list:
 
 
 def run_gather_links(driver_pool: WebDriverPool, url) -> list:
-    driver: webdriver.Chrome = driver_pool.acquire()
-    try:
-        return gather_links(driver, url)
-    except Exception as e:
-        logging.error(f'Error gathering links: {e}')
-        return []
-    finally:
-        driver_pool.release(driver)
+    for _ in range(3):
+        driver: webdriver.Chrome = driver_pool.acquire()
+        try:
+            return gather_links(driver, url)
+        except Exception as e:
+            logging.error(f'Error gathering links: {e}')
+        finally:
+            driver_pool.release(driver)
+    return []
 
 
 
