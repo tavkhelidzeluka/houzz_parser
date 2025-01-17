@@ -17,26 +17,32 @@ from driver_pool import WebDriverPool
 from contractor_parser import run_contractors_parser
 
 MAX_WORKERS: int = 1
-PAGE_COUNT: int = 1
+PAGE_COUNT: int = 2
 ITEM_PER_PAGE: int = 15
 
 def gather_links(driver: webdriver.Chrome, url: str) -> list:
-    # set filters
-    base_url: str = url.split('?')[0]
     logging.info(f'Gathering links from: {url}')
-    driver.get(base_url)
-    anywhere_location_button = WebDriverWait(driver, 5).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, '#hui-menu-1-item-4'))
-    )
-    driver.execute_script("arguments[0].click();", anywhere_location_button)
-    logging.info('Set location to anywhere')
+
+    driver.get(url)
+
     radius_field = WebDriverWait(driver, 5).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, '[data-component="Radius"'))
     )
-    time.sleep(10)
 
     logging.info(f'Radius Text: {radius_field.text}')
-    driver.get(url)
+    if radius_field.text != 'Anywhere':
+        logging.info('Radius is not set to anywhere')
+        # set filters
+        radius_field.click()
+        anywhere_location_button = WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, '#hui-menu-1-item-4'))
+        )
+        anywhere_location_button.click()
+        # driver.execute_script("arguments[0].click();", anywhere_location_button)
+        logging.info('Set location to anywhere')
+        if driver.current_url != url:
+            driver.get(url)
+
 
     contractor_items = WebDriverWait(driver, 5).until(
         EC.presence_of_all_elements_located((By.CSS_SELECTOR, '.hz-pro-search-results__item'))
