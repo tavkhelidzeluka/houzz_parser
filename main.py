@@ -19,7 +19,7 @@ from settings import (
     ELEMENT_FIND_TIMEOUT,
     PAGE_COUNT,
     ITEM_PER_PAGE,
-    PAGE_RETRY_COUNT,
+    PAGE_RETRY_COUNT, OUTPUT_FILE,
 )
 from driver_pool import WebDriverPool
 from contractor_parser import run_contractors_parser
@@ -123,7 +123,7 @@ def main() -> None:
             logging.info(f'Parsed: {len(contractor_details)} contractor pages')
             results.extend(contractor_details)
 
-    with open('contractors.json', 'w') as f:
+    with OUTPUT_FILE.open('w') as f:
         json.dump(results, f, indent=4)
 
 
