@@ -2,6 +2,8 @@ import json
 import logging
 import multiprocessing
 import re
+import time
+
 import selenium.common.exceptions
 
 from dataclasses import dataclass, field
@@ -35,13 +37,16 @@ class ContractorsParser:
     def __parse_contractor(self, contractor) -> dict:
         self.logger.info(f'Parsing: {contractor["url"]}')
         self.driver.get(contractor['url'])
-        for _ in range(PAGE_RETRY_COUNT):
+        for i in range(PAGE_RETRY_COUNT):
             try:
                 WebDriverWait(self.driver, ELEMENT_FIND_TIMEOUT).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, '[data-component="Pro Name"'))
                 )
             except selenium.common.exceptions.TimeoutException:
+                self.logger.error(f'Retrying in {5 ** i} seconds for {contractor["name"]} - {contractor["url"]}')
+                time.sleep(5 ** i)
                 self.driver.get(contractor['url'])
+
 
         # get only number from string
         try:

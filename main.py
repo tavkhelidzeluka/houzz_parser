@@ -33,6 +33,10 @@ def gather_links(driver: webdriver.Chrome, url: str) -> list:
     radius_field = WebDriverWait(driver, ELEMENT_FIND_TIMEOUT).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, '[data-component="Radius"'))
     )
+    total_professionals = WebDriverWait(driver, ELEMENT_FIND_TIMEOUT).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, '.directory-results-pagination__pro-count'))
+    ).text
+    logging.info(f'Total Professionals: {total_professionals}')
 
     logging.info(f'Radius Text: {radius_field.text}')
     if radius_field.text != 'Anywhere':
@@ -72,12 +76,13 @@ def gather_links(driver: webdriver.Chrome, url: str) -> list:
 
 
 def run_gather_links(driver_pool: WebDriverPool, url) -> list:
-    for _ in range(PAGE_RETRY_COUNT):
+    for i in range(PAGE_RETRY_COUNT):
         driver: webdriver.Chrome = driver_pool.acquire()
         try:
             return gather_links(driver, url)
         except Exception as e:
-            logging.error(f'Error gathering links: {e}')
+            logging.error(f'Retrying in {5 ** i} seconds - Error while gathering links: {e}')
+            time.sleep(5 ** i)
         finally:
             driver_pool.release(driver)
     return []
